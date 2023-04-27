@@ -9,6 +9,7 @@ DUE: 29 April 2023
 - **Omar Trejo** - trejo.omar562@csu.fullerton.edu
 - **Jared Sevilla** - jaredgsevilla@gmail.com
                     - jgsevilla@csu.fullerton.edu
+- **Anthony Tran**  - Tranthony_777@csu.fullerton.edu
   
 ## Project Overview
 In this assignment, you will implement (simplified) FTP server and FTP client. The client shall
