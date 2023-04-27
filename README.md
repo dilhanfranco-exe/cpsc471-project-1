@@ -7,8 +7,7 @@ DUE: 29 April 2023
 
 - **Dilhan Franco** - dilhanfranco@csu.fullerton.edu
 - **Omar Trejo** - trejo.omar562@csu.fullerton.edu
-- **Jared Sevilla** - jaredgsevilla@gmail.com
-                    - jgsevilla@csu.fullerton.edu
+- **Jared Sevilla** - jgsevilla@csu.fullerton.edu
 - **Anthony Tran**  - Tranthony_777@csu.fullerton.edu
   
 ## Project Overview
