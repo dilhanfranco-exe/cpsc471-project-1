@@ -6,7 +6,8 @@ DUE: 29 April 2023
 ## Group Members
 
 - **Dilhan Franco** - dilhanfranco@csu.fullerton.edu
-- **Jared Sevilla** - jgsevilla@csu.fullerton.edu
+- **Jared Sevilla** - jaredgsevilla@gmail.com
+                    - jgsevilla@csu.fullerton.edu
   
 ## Project Overview
 In this assignment, you will implement (simplified) FTP server and FTP client. The client shall
