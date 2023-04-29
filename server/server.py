@@ -8,7 +8,7 @@ print ("\nWelcome to the FTP server.\n\nTo get started, connect a client.")
 
 # Initialise socket stuff
 TCP_IP = "127.0.0.1" # Only a local server
-TCP_PORT = 12345 # Just a random choice
+TCP_PORT = 21 # Control connection port
 BUFFER_SIZE = 1024 # Standard size
 serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 serverSocket.bind((TCP_IP, TCP_PORT))
