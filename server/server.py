@@ -147,7 +147,7 @@ class Server:
         # Wait for connection
         print('Waiting to connect...')
         conn, addr = self.c_sock.accept()
-        print('Connected!')
+        print("\nConnected to by address: {}".format(addr))
     
         # Continually recieve message from control connection
         while True:
@@ -206,11 +206,25 @@ class Server:
         with open(filename, 'w+') as f:
             f.write(data)
 
-    def get(self):
-        pass
+    def get(self, socket: socket, filename: str):
+        '''
+        
+        Upload the file to the client
 
-    def ls(self):
-        pass
+        Parameters:
+            socket (socket): the control conneciton
+            filename (str): the name of the file to upload
+        '''
+        
+
+    def ls(self, socket: socket):
+        '''
+        
+        Return a list of files in the current directory
+
+        Paramters:
+            socket (socket): the control connection
+        '''
 
     def quit(self, socket: socket):
         '''
