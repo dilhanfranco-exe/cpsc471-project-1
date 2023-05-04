@@ -478,10 +478,11 @@ class Client():
         '''Closes the control connection and terminates the client'''
 
         # Send a QUIT command to the server over the control connection.
+        # Client.send(c_sock, 'QUIT\r\n')
         Client.send(self.c_sock, 'quit')
 
         # Receive a response message from the server indicating that the 
-        # command has been received and the connection will be closed.
+        # command has been received and the connection will be closed.    
         m = Client.receive(self.c_sock, 1024)
 
         # Close connection if return code is 211
@@ -489,6 +490,7 @@ class Client():
 
             # Close control connection
             self.c_sock.close()
+            print('Connection is closed.')
 
             # Pause terminal until user input, then exit
             print('Press any key to exit . . .')
