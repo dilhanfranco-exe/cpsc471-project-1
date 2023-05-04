@@ -2,6 +2,7 @@ import socket
 import sys
 import os
 import struct
+from math import ceil
 
 # # Initialise socket stuff
 # TCP_IP = "127.0.0.1" # Only a local server
@@ -238,20 +239,17 @@ raw_input = input
 #     else:
 #         print ("Command not recognised; please try again")
 
-class Client_Socket():
+class Client():
     '''
-    A client socket class for ftp
+    A client class for ftp
     
     Attributes:
         ip (string): the IP address of the ftp server
         port (int): the port number for the ftp server
         buffer_size (int): the size of the client's buffer in bytes
-        c_sock (Socket): the control socket for communication with ftp server
+        c_sock (socket): the control socket for communication with ftp server
 
     Methods:
-        connect():
-            Attempts to connect to the ftp server
-
         start()
             Starts ftp client
 
@@ -273,6 +271,12 @@ class Client_Socket():
     Static Methods:
         tokenize_string(input_string)
             Tokenizes input string
+
+        connect(sock, ip, port_number)
+            Attempts to connect socket to the ftp server
+
+        send(socket, msg)
+            Send message over socket
     '''
 
     def __init__(self, serverip, port_number):
@@ -287,26 +291,7 @@ class Client_Socket():
         self.buffer_size = 1024
         self.c_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        self.connect()
-
-    def connect(self):
-        '''
-        Attempts to connect to the ftp server
-        
-        If connection is unsuccessful this function will terminate the program
-        '''
-
-        try:
-            self.c_sock.connect((self.ip, self.port))
-    
-        except:
-            # Could not connect to server
-            print("Connection unsuccessful. Please make sure the server is online.\nClosing 'cli.py'...\n")
-            print('Press any key to exit . . .')
-
-            # Pause terminal until user input, then exit
-            os.system('pause>NUL')
-            sys.exit()
+        self.connect(self.c_sock, self.ip, self.port)
 
     def start(self):
         '''
@@ -339,7 +324,7 @@ class Client_Socket():
             return
 
         # Get tokens for user input
-        tokens = Client_Socket.tokenize_string(inStr)
+        tokens = Client.tokenize_string(inStr)
 
         match tokens[0]:
             ### GET COMMAND ###############################################
@@ -396,43 +381,66 @@ class Client_Socket():
             filename (str): name of the file to be uploaded
         '''
 
+        filepath = os.getcwd() + '\\' + filename
+
+        # Open and read file
         try:
             # Open file
-            # print(os.getcwd())
-            # print(filename)
-            file = open(filename, "rb")
+            with open(filepath, "r") as f:
+
+                # Read file contents
+                msg = f.read()
+
         except IOError:
             print("Couldn't open file. Make sure the file name was entered correctly.\n")
             return
 
+        # Send upload request
         try:
             # Make upload request
-            self.c_sock.send('put'.encode())
+            Client.send(self.c_sock, f'put,{filename}')
         except socket.error:
-            print("Couldn't make server request. Make sure a connection has bene established.\n")
+            print("Couldn't make server request. Make sure a connection has been established.\n")
             return
 
         try:
-            # Wait for server response
-            m = self.c_sock.recv(self.buffer_size)
+            # Recieve server message
+            m = Client.receive(self.c_sock, self.buffer_size)
 
-            # TODO Establish data connection on ip and port
-            # specified in server response message m
+            # Parse message
+            ip, port = m.split(',')
+            port = int(port)
 
-            # TODO Cend file to server over data connection
+        # Establish data connection on ip and port
+        # specified in server response message m
 
-            # TODO close data connection
+            # Create data socket
+            d_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+            # Connect data socket to server
+            self.connect(d_sock, ip, port)
+
+        # Send file to server over data connection
+
+            # Send encoded message over data connection
+            Client.send(d_sock, msg)
+
+            # Close data connection
+            d_sock.close()
 
         except socket.error:
             print("Error sending file")
             return
         
-    def get(self, filename: str):
+    def get(self, filename: str) -> str:
         '''
         Downloads file from the ftp server
 
         Parameters:
             filename (str): name of file to be downloaded
+
+        Returns:
+            str: the downloaded file as a utf8 string
         '''
 
         # TODO Send a GET request to the server over the control connection, 
@@ -447,6 +455,8 @@ class Client_Socket():
         # TODO Receive the file from the server over the data connection.
 
         # TODO Close the data connection.
+
+        # TODO Return the string
 
     def ls(self):
         '''Request and prints a list of the files in the ftp working directory'''
@@ -467,19 +477,28 @@ class Client_Socket():
     def quit(self):
         '''Closes the control connection and terminates the client'''
 
-        # TODO Send a QUIT command to the server over the control connection.
+        # Send a QUIT command to the server over the control connection.
+        Client.send(self.c_sock, 'quit')
 
-        # TODO Receive a response message from the server indicating that the 
+        # Receive a response message from the server indicating that the 
         # command has been received and the connection will be closed.
+        m = Client.receive(self.c_sock, 1024)
 
-        # TODO Close the control connection.
+        # Close connection if return code is 211
+        if m == '211':
 
-        # Pause terminal until user input, then exit
-        print('Press any key to exit . . .')
-        os.system('pause>NUL')
-        sys.exit()
+            # Close control connection
+            self.c_sock.close()
+
+            # Pause terminal until user input, then exit
+            print('Press any key to exit . . .')
+            os.system('pause>NUL')
+            sys.exit()
+
+        # Connection could not be closed
+        else:
+            print('Could not close connection... Please try again.\n')
     
-        
     @staticmethod
     def tokenize_string(input_string: str) -> list[str]:
         '''
@@ -502,6 +521,72 @@ class Client_Socket():
         # Return tokens
         return input_string.split(' ')
     
+    @staticmethod
+    def connect(sock: socket, ip: str, port_number: int):
+        '''
+        Attempts to connect socket to the ftp server
+        
+        If connection is unsuccessful this function will terminate the program
+
+        Parameters:
+            sock (socket): the socket to connect to the server
+            ip (str): the ip address of the server socket
+            port_number (int): port number of the server socket
+        '''
+
+    # try:
+        sock.connect((ip, port_number))
+
+    # commented out for debugging
+    # except:
+        # # Could not connect to server
+        # print("Connection unsuccessful. Please make sure the connection is online.\nClosing 'cli.py'...\n")
+        # print('Press any key to exit . . .')
+
+        # # Pause terminal until user input, then exit
+        # os.system('pause>NUL')
+        # sys.exit()
+
+    @staticmethod
+    def send(socket: socket, msg: str):
+        '''Send message over socket'''
+
+        print(f'Sending: {msg}')
+
+        # Prepend 4-byte file size to encoded message
+        e_msg = struct.pack('>I', len(msg)) + msg.encode()
+
+        bytes_sent = 0
+        # Keep sending bytes until all bytes are sent
+        while bytes_sent != len(e_msg):
+            # Send that string!
+            bytes_sent += socket.send(e_msg[bytes_sent:])
+
+    @staticmethod
+    def receive(socket: socket, buffer_size: int) -> str:
+        '''
+        Receive message from socket
+        
+        Parameters:
+            socket (socket): the socket to recieve msg from
+            buffer_size (int): the maximum buffer size
+
+        Returns:
+            str: the decoded string received from the socket
+        '''
+
+        # Get the size of the message
+        size = int.from_bytes(socket.recv(4))
+
+        data = b''
+        for _ in range(ceil(size / buffer_size)):
+            # Recieve buffer_size bytes and add to data
+            data += socket.recv(buffer_size)
+
+        print(f'Received: {data.decode("utf8")}')
+
+        return data.decode('utf8')
+    
 
 if __name__ == '__main__':
 
@@ -516,7 +601,7 @@ if __name__ == '__main__':
         # TODO: parse inputs to ensure they are correct
 
         # Create Client Socket
-        cli_sock = Client_Socket(sys.argv[1], int(sys.argv[2]))
+        cli_sock = Client(sys.argv[1], int(sys.argv[2]))
 
         # Start Client Socket
         cli_sock.start()
