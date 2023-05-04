@@ -15,7 +15,7 @@ serverSocket.bind((TCP_IP, TCP_PORT))
 serverSocket.listen(1)
 conn, addr = serverSocket.accept()
 
-print ("\nConnected to by address: {}").format(addr)
+print("\nConnected to by address: {}".format(addr))
 
 def put():
 # Send message once server is ready to recieve file details
@@ -32,13 +32,13 @@ start_time = time.time()
 output_file = open(file_name, "wb")
 # This keeps track of how many bytes we have recieved, so we know when to stop the loop
 bytes_recieved = 0
-print ("\nRecieving...")
+print ("\nReceiving...")
 while bytes_recieved < file_size:
   l = conn.recv(BUFFER_SIZE)
   output_file.write(l)
   bytes_recieved += BUFFER_SIZE
   output_file.close()
-  print ("\nRecieved file: {}").format(file_name)
+  print ("\nReceived file: {}").format(file_name)
 # Send upload performance details
   conn.send(struct.pack("f", time.time() - start_time))
   conn.send(struct.pack("i", file_size))
