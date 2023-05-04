@@ -468,11 +468,16 @@ class Client_Socket():
         '''Closes the control connection and terminates the client'''
 
         # TODO Send a QUIT command to the server over the control connection.
+        self.c_sock.send(b'QUIT\r\n')
 
         # TODO Receive a response message from the server indicating that the 
         # command has been received and the connection will be closed.
+        response = self.c_sock.recv(1024)
+        print(response.decode())    
 
         # TODO Close the control connection.
+        self.c_sock.close()
+        print('Connection is closed.')
 
         # Pause terminal until user input, then exit
         print('Press any key to exit . . .')
