@@ -22,9 +22,9 @@ Python 3.11.0
 Our client and server files are in two different folders with their respective names. Therefore, open two different terminals and cd into the Server and Client directories.
 
 ## How to start the Server
-In the server, we just run the file as follows:
+In the server, we specify the port number of the server's control connection:
 ```
-python3 server.py
+python3 server.py 21
 ```
 
 ## How to start the Client
@@ -54,6 +54,12 @@ To end the session:
 ```
 ftp>quit
 ```
+
+To display help information:
+```
+ftp> help
+```
+
 ## Protocol
 
 ![Process Map](https://user-images.githubusercontent.com/54593489/236600347-1dc0d3d1-d4ff-4193-93ce-8ec8fb2c378e.jpeg)
