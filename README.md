@@ -21,14 +21,36 @@ Python 3.11.0
 # How to Execute
 Our client and server files are in two different folders with their respective names. Therefore, open two different terminals and cd into the server and client directories.
 
-## How to start the server
+## How to start the Server
 In the server, we just run the file as follows:
 ```
 python3 server.py
 ```
 
-## How to start the client
-In the client, we specify the local host server and the port we are connecting to:
+## How to start the Client
+In the client, we specify the localhost server and the port we are connecting to:
 ```
 python3 cli.py 127.0.0.1 21
+```
+## Running Client Commands
+Once the Client and Server are successfully connected, you may run the following commands:
+
+To list working directory contents:
+```
+ftp>ls
+```
+
+To download a file from the Server onto the Client:
+```
+ftp>get <filename>
+```
+
+To upload a file from the Client onto the Server:
+```
+ftp>put <filename>
+```
+
+To end the session:
+```
+ftp>quit
 ```
