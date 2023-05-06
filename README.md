@@ -54,3 +54,7 @@ To end the session:
 ```
 ftp>quit
 ```
+## Protocol
+
+![Process Map](https://user-images.githubusercontent.com/54593489/236600347-1dc0d3d1-d4ff-4193-93ce-8ec8fb2c378e.jpeg)
+```
