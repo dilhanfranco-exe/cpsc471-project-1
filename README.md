@@ -57,7 +57,7 @@ ftp>quit
 
 To display help information:
 ```
-ftp> help
+ftp>help
 ```
 
 ## Protocol
