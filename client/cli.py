@@ -2,6 +2,10 @@ import socket
 import sys
 import os
 import struct
+import ipaddress
+import getpass
+
+from pathlib import Path
 from math import ceil
 
 raw_input = input
@@ -23,6 +27,9 @@ class Client():
         get_input()
             Gets user input and calls appropriate command
 
+        help()
+            Display help information
+
         put(filename)
             Uploads file to the ftp server
         
@@ -35,6 +42,7 @@ class Client():
         quit()
             Closes the control connection and terminates the client
 
+
     Static Methods:
         tokenize_string(input_string)
             Tokenizes input string
@@ -44,6 +52,12 @@ class Client():
 
         send(socket, msg)
             Send message over socket
+
+        receive(socket, buffer_size)
+            Receive message from socket
+
+        close()
+            Closes the program
     '''
 
     def __init__(self, serverip, port_number):
@@ -66,6 +80,10 @@ class Client():
         
         Request user input in a loop until user quits
         '''
+
+        # Print welcome message and help information
+        print('##### WELCOME TO FTP! ############################################\n')
+        self.help()
 
         while True:
             # Get user input as command
@@ -134,11 +152,31 @@ class Client():
 
                 self.quit()
 
+            ### HELP COMMAND ##############################################
+            case 'help':
+                self.help()
+                return
+
             ### INVALID COMMAND ###########################################
             case _:
                 # Print error
                 print(f"'{tokens[0]}' is not a recognized command\n")
                 return
+            
+    def help(self):
+        '''Display help information'''
+
+        print(f'Current Directory: {os.getcwd()}\n\n'\
+                       'GET - Download a file from the server\n'\
+                       '\tUsage: get <filename>\n\n'\
+                       'PUT - Upload a file to the server\n'\
+                       '\t Usage: put <filename>\n\n'\
+                       'LS - List file in server directory\n'\
+                       '\tUsage: ls\n\n'\
+                       'QUIT - Close connection with server\n'\
+                       '\tUsage: quit\n\n'\
+                       'HELP - Display help information\n'\
+                       '\tUsage: help\n')
             
     def put(self, filename: str):
         '''
@@ -148,7 +186,15 @@ class Client():
             filename (str): name of the file to be uploaded
         '''
 
-        filepath = os.getcwd() + '\\' + filename
+        filepath = Path(filename)
+
+        # Print message
+        print(f'Uploading {filepath.name}...\n')
+
+        # Check if attempting to upload cli.py
+        if filepath.name == 'cli.py':
+            print('Cannot send client program.\n')
+            return
 
         # Open and read file
         try:
@@ -159,7 +205,10 @@ class Client():
                 msg = f.read()
 
         except IOError:
-            print("Couldn't open file. Make sure the file name was entered correctly.\n")
+            if '\\' in filename:
+                print("Could'nt open file. Use forward slashes instead.\n")
+            else:
+                print("Couldn't open file. Make sure the file name was entered correctly.\n")
             return
 
         # Send upload request
@@ -171,7 +220,15 @@ class Client():
             return
 
         try:
-            # Receive server message
+
+            # Receive server message indicating command will be executed succesfully
+            m = Client.receive(self.c_sock, self.buffer_size)
+
+            if m != '200':
+                print('Bad Request.\n')
+                return
+
+            # Receive server message indicating ip and port of data connection
             m = Client.receive(self.c_sock, self.buffer_size)
 
             # Parse message
@@ -189,7 +246,7 @@ class Client():
 
         # Send file to server over data connection
 
-            # Send encoded message over data connection
+            # Send message over data connection
             Client.send(d_sock, msg)
 
             # Close data connection
@@ -209,8 +266,16 @@ class Client():
         Returns:
             str: the downloaded file as a utf8 string
         '''
+
+        # Check if client is attempting to download server.py
+        if Path(filename).name == 'server.py':
+            print('Cannot download server program.\n')
+            return
     
-        # TODO Send a GET request to the server over the control connection, 
+        # Print getting message
+        print(f'Downloading {Path(filename).name}...\n')
+
+        # Send a GET request to the server over the control connection, 
         # specifying the name and path of the file to be retrieved.
 
         try:
@@ -219,8 +284,18 @@ class Client():
         except socket.error:
             print("Couldn't make server request. Make sure a connection has been established.\n")
             return
+        
+        # Receive response message from server indicating if file exist
+        m = Client.receive(self.c_sock, self.buffer_size)
 
-        # TODO Receive a response message from the server that includes the 
+        if m == '550':
+            print('File not found.\n')
+            return
+        elif m == '200':
+            # File exist
+            pass
+
+        # Receive a response message from the server that includes the 
         # IP address and port number to be used for the data connection.
 
         try:
@@ -231,23 +306,23 @@ class Client():
             ip, port = m.split(',')
             port = int(port)
 
-        # TODO Establish a data connection with the server on the IP address 
+        # Establish a data connection with the server on the IP address 
         # and port specified in the server response message.
         
             d_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.connect(d_sock, ip, port)
 
-        # TODO Receive the file from the server over the data connection.
+        # Receive the file from the server over the data connection.
             data = Client.receive(d_sock,self.buffer_size)
           
             with open(filename, 'w+') as f:
                     f.write(data)
             
-        # TODO Close the data connection.
+        # Close the data connection.
 
             d_sock.close()
             
-        # TODO Return the string
+        # Return the string
 
         except socket.error:
             print("Error receiving file")
@@ -258,12 +333,33 @@ class Client():
         '''Request and prints a list of the files in the ftp working directory'''
 
         try:
-            # Send LS command and receive server response
+
+            # Send LS command
             Client.send(self.c_sock, 'ls')
+
+            # Receive server message indicating command will be executed succesfully
+            m = Client.receive(self.c_sock, self.buffer_size)
+
+            if m != '200':
+                print('Bad Request.\n')
+                return
+            
+            # Receive server message indiciating ip and port of data connection
             m = Client.receive(self.c_sock, 1024)
 
-            # Connect data socket to server
+            # Parse server message
+            ip, port = m.split(',')
+            port = int(port)
+
+            # Create and connect data socket
             d_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.connect(d_sock, ip, port)
+
+            # Receive data from server over data connection
+            data = Client.receive(d_sock, self.buffer_size)
+
+            # Print data to terminal
+            print(data, end='\n\n')
 
             # Close data socket
             d_sock.close()
@@ -285,14 +381,14 @@ class Client():
         # Close connection if return code is 211
         if m == '211':
 
+            # Print goodbye message
+            print('Thanks for using ftp!\n')
+
             # Close control connection
             self.c_sock.close()
-            print('Connection is closed.')
 
-            # Pause terminal until user input, then exit
-            print('Press any key to exit . . .')
-            os.system('pause>NUL')
-            sys.exit()
+            # Terminate programs
+            Client.close()
 
         # Connection could not be closed
         else:
@@ -333,24 +429,21 @@ class Client():
             port_number (int): port number of the server socket
         '''
 
-    # try:
-        sock.connect((ip, port_number))
+        try:
+            sock.connect((ip, port_number))
 
-    # commented out for debugging
-    # except:
-        # # Could not connect to server
-        # print("Connection unsuccessful. Please make sure the connection is online.\nClosing 'cli.py'...\n")
-        # print('Press any key to exit . . .')
-
-        # # Pause terminal until user input, then exit
-        # os.system('pause>NUL')
-        # sys.exit()
+        except:
+            # Could not connect to server
+            print("Connection unsuccessful. Please check if port number and ip is correct or server is online.\nClosing 'cli.py'...\n")
+            
+            # Close the program
+            Client.close()
 
     @staticmethod
     def send(socket: socket, msg: str):
         '''Send message over socket'''
 
-        print(f'Sending: {msg}')
+        # print(f'Sending: {msg}')
 
         # Prepend 4-byte file size to encoded message
         e_msg = struct.pack('>I', len(msg)) + msg.encode()
@@ -382,11 +475,31 @@ class Client():
             # Recieve buffer_size bytes and add to data
             data += socket.recv(buffer_size)
 
-        print(f'Received: {data.decode("utf8")}')
+        # print(f'Received: {data.decode("utf8")}')
 
         return data.decode('utf8')
     
+    @staticmethod 
+    def close():
+        '''Closes the program'''
 
+        # Windows system
+        if os.name == 'posix':
+            print('Press any key to exit . . .')
+            # Wait for user input
+            getpass.getpass(prompt='', stream=None)
+
+            # Terminate program
+            sys.exit()
+        elif os.name == 'nt':
+            print('Press any key to exit . . .')
+            # Wait for user input
+            os.system('pause>NUL')
+
+            # Terminate program
+            sys.exit()
+
+            
 if __name__ == '__main__':
 
     # print()
@@ -396,11 +509,21 @@ if __name__ == '__main__':
         # Print error
         print(f"'cli.py' expects 2 arguments ({len(sys.argv)-1} given)")
         
+    # Parse arguments
     else:
-        # TODO: parse inputs to ensure they are correct
+        try:
+            int(sys.argv[2])
+            ipaddress.ip_address(sys.argv[1])
 
-        # Create Client Socket
+        except ValueError:
+            print('Invalid IP address or port number.\nPlease try again...\n')
+
+            # Terminate program
+            Client.close()
+        
+
+        # Create Client
         cli_sock = Client(sys.argv[1], int(sys.argv[2]))
 
-        # Start Client Socket
+        # Start Client
         cli_sock.start()
