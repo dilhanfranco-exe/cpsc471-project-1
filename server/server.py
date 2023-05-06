@@ -60,6 +60,8 @@ class Server:
             match params[0]:
                 case 'put':
                     self.put(conn, params[1])
+                case 'get':
+                    self.get(conn,params[1])
                 case 'ls':
                   self.ls(conn)
 
@@ -108,7 +110,7 @@ class Server:
         with open(filename, 'w+') as f:
             f.write(data)
 
-    def get(self, socket: socket, filename: str):
+    def get(self, control_socket: socket, filename: str):
         '''
         
         Upload the file to the client
@@ -116,7 +118,48 @@ class Server:
         Parameters:
             socket (socket): the control conneciton
             filename (str): the name of the file to upload
-        '''       
+        '''    
+        
+        
+        # Create data socket
+        d_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Bind data socket to ip and port
+        d_sock.bind((self.ip, 20))
+
+        # Create message with ip and port number for data connection
+        msg = f'{self.ip},{20}'
+
+        # Send msg over control connection
+        Server.send(control_socket, msg)
+
+        # Set max number of listeners for data connection
+        d_sock.listen(1)
+
+        # Accept connection
+        conn, addr = d_sock.accept()
+        print('connected')
+
+        filepath = os.getcwd() + '\\' + filename
+
+        # Open and read file
+        try:
+            # Open file
+            with open(filepath, "r") as f:
+
+                # Read file contents
+                msg = f.read()
+
+        except IOError:
+            print("Couldn't open file. Make sure the file name was entered correctly.\n")
+            return
+        
+        Server.send(conn, msg)
+        
+        # Close data connection
+        d_sock.close()
+        conn.close()
+
 
     def ls(self, sock: socket):
         '''

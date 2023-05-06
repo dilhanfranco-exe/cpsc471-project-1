@@ -171,7 +171,7 @@ class Client():
             return
 
         try:
-            # Recieve server message
+            # Receive server message
             m = Client.receive(self.c_sock, self.buffer_size)
 
             # Parse message
@@ -209,21 +209,50 @@ class Client():
         Returns:
             str: the downloaded file as a utf8 string
         '''
-
+    
         # TODO Send a GET request to the server over the control connection, 
         # specifying the name and path of the file to be retrieved.
+
+        try:
+            # Make upload request
+            Client.send(self.c_sock, f'get,{filename}')
+        except socket.error:
+            print("Couldn't make server request. Make sure a connection has been established.\n")
+            return
 
         # TODO Receive a response message from the server that includes the 
         # IP address and port number to be used for the data connection.
 
+        try:
+            # Receive server message
+            m = Client.receive(self.c_sock, self.buffer_size)
+
+            # Parse message
+            ip, port = m.split(',')
+            port = int(port)
+
         # TODO Establish a data connection with the server on the IP address 
         # and port specified in the server response message.
+        
+            d_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.connect(d_sock, ip, port)
 
         # TODO Receive the file from the server over the data connection.
-
+            data = Client.receive(d_sock,self.buffer_size)
+          
+            with open(filename, 'w+') as f:
+                    f.write(data)
+            
         # TODO Close the data connection.
 
+            d_sock.close()
+            
         # TODO Return the string
+
+        except socket.error:
+            print("Error receiving file")
+            return
+        
 
     def ls(self):
         '''Request and prints a list of the files in the ftp working directory'''
