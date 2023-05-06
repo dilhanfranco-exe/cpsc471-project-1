@@ -1,9 +1,10 @@
 import socket
 import sys
-import time
 import os
 import struct
+import getpass
 
+from pathlib import Path
 from math import ceil
 
 class Server:
@@ -18,39 +19,64 @@ class Server:
         start()
             Start the ftp server
 
-        quit()
+        put(control_socket, filename)
+            Download file from client
+
+        get(control_socket, filename)
+            Upload the file to the client
+
+        ls(sock)
+            Print a list of files in the current directory
+
+        quit(socket)
             Closes the control connection and terminates the server
 
-        
+    Static Methods:
+        receive(socket, buffer_size)
+            Receive message from socket
+
+        send(socket, msg)
+            Send message over socket
+
+        close():
+            Closes the program
     '''
 
-    def __init__(self, ip: str):
+    def __init__(self, ip: str, port: int):
         '''
 
         Parameters:
             ip (str): the ip address of the ftp server
+            port (int): the port number of the control connection
         '''
 
         self.ip = ip
+        self.port = port
         self.c_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.buffer_size = 1024
 
-        self.c_sock.bind((self.ip, 21))
+        self.c_sock.bind((self.ip, self.port))
 
 
     def start(self):
         '''Start the ftp server'''
 
+        # Print starting message
+        print(f'Starting server on port {self.c_sock.getsockname()[1]}')
+
         # Set number of allowed incoming connection requests
         self.c_sock.listen(1)
           
         # Wait for connection
-        print('Waiting to connect...')
+        print('Waiting to connect')
         conn, addr = self.c_sock.accept()
-        print("\nConnected to by address: {}".format(addr))
+        print("Connected to by address: {}".format(addr))
     
         # Continually recieve message from control connection
         while True:
+
+            print()
+
             # Recieve message
             msg = Server.receive(conn, 1024)
 
@@ -80,14 +106,17 @@ class Server:
             filename (str): the name of the file to download
         '''
 
+        # Send ok message to client
+        Server.send(control_socket, '200')
+
         # Create data socket
         d_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # Bind data socket to ip and port
-        d_sock.bind((self.ip, 20))
+        d_sock.bind((self.ip, 0))
 
         # Create message with ip and port number for data connection
-        msg = f'{self.ip},{20}'
+        msg = f'{self.ip},{d_sock.getsockname()[1]}'
 
         # Send msg over control connection
         Server.send(control_socket, msg)
@@ -97,14 +126,15 @@ class Server:
 
         # Accept connection
         conn, addr = d_sock.accept()
+        print("Connected to by address: {}".format(addr))
 
-        print('connected')
         # Receive file from client
         data = Server.receive(conn, self.buffer_size)
 
         # Close data connection
         d_sock.close()
         conn.close()
+        print(f'Closing data connection')
 
         # Open and write data to file
         with open(filename, 'w+') as f:
@@ -112,7 +142,6 @@ class Server:
 
     def get(self, control_socket: socket, filename: str):
         '''
-        
         Upload the file to the client
 
         Parameters:
@@ -120,15 +149,23 @@ class Server:
             filename (str): the name of the file to upload
         '''    
         
+        # Check if file exists
+        if not Path(filename).exists():
+            # Send file not found return code
+            Server.send(control_socket, '550')
+            return
+        else:
+            Server.send(control_socket, '200')
         
         # Create data socket
         d_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print('Created data socket.')
 
         # Bind data socket to ip and port
-        d_sock.bind((self.ip, 20))
+        d_sock.bind((self.ip, 0))
 
         # Create message with ip and port number for data connection
-        msg = f'{self.ip},{20}'
+        msg = f'{self.ip},{d_sock.getsockname()[1]}'
 
         # Send msg over control connection
         Server.send(control_socket, msg)
@@ -137,10 +174,11 @@ class Server:
         d_sock.listen(1)
 
         # Accept connection
+        print('awaiting connection')
         conn, addr = d_sock.accept()
-        print('connected')
+        print("\nConnected to by address: {}".format(addr))
 
-        filepath = os.getcwd() + '\\' + filename
+        filepath = Path(filename)
 
         # Open and read file
         try:
@@ -159,29 +197,54 @@ class Server:
         # Close data connection
         d_sock.close()
         conn.close()
+        print('Closing data connection')
 
 
     def ls(self, sock: socket):
         '''
-        Return a list of files in the current directory
+        Print a list of files in the current directory
 
         Parameters:
             sock (socket): the control connection
         '''
+
+        # Send ok message to client
+        Server.send(sock, '200')
+
         # Create data socket
         d_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+        # Bind data socket to ip and port
+        d_sock.bind((self.ip, 0))
+
+        # Create message with ip and port number for data connection
+        msg = f'{self.ip},{d_sock.getsockname()[1]}'
+
+        # Send msg over control connection
+        Server.send(sock, msg)
+
+        # Set max number of listeners for data connection
+        d_sock.listen(1)
+
+        # Accept connection
+        conn, addr = d_sock.accept()
+        print("Connected to by address: {}".format(addr))
+
         # Get a list of files in the current directory
         file_list = os.listdir('.')
+        if 'server.py' in file_list:
+            file_list.remove('server.py')
 
-        # Join the file names into a string separated by newline characters
+        # Join the file names into a string separated by commas characters
         response = ", ".join(file_list)
 
         # Send the directory listing to the client over the data connection
-        Server.send(sock, response)
+        Server.send(conn, response)
 
         # Close data connection
         d_sock.close()
+        conn.close()
+        print('Closing data connection')
 
     def quit(self, socket: socket):
         '''
@@ -197,10 +260,8 @@ class Server:
         # Close control connection
         socket.close()
 
-        # Pause terminal until user input, then exit
-        print('Press any key to exit . . .')
-        os.system('pause>NUL')
-        sys.exit()
+        # Close program
+        Server.close()
 
     @staticmethod
     def receive(socket: socket, buffer_size: int) -> str:
@@ -242,8 +303,42 @@ class Server:
             # Send that string!
             bytes_sent += socket.send(e_msg[bytes_sent:])
 
+    @staticmethod 
+    def close():
+        '''Closes the program'''
+
+        # Windows system
+        if os.name == 'posix':
+            print('Press any key to exit . . .')
+            getpass.getpass(prompt='', stream=None)
+            sys.exit()
+        elif os.name == 'nt':
+            print('Press any key to exit . . .')
+            os.system('pause>NUL')
+            sys.exit()
+
+
 if __name__ == '__main__':
 
-    s = Server('127.0.0.1')
+    # Ensure there is only 2 command line arguments
+    if len(sys.argv) != 2:
+        # Print error
+        print(f"'server.py' expects 1 argument ({len(sys.argv)-1} given)")
+        
+    # Parse argument
+    else:
+        try:
+            int(sys.argv[1])
 
-    s.start()
+        except ValueError:
+            print('Invalid port number.\nPlease try again...\n')
+
+
+            # Terminate program
+            Server.close()
+
+        # Create Server
+        s = Server('127.0.0.1', int(sys.argv[1]))
+
+        # Start Server
+        s.start()
