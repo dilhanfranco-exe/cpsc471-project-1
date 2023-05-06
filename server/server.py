@@ -6,7 +6,6 @@ import struct
 
 from math import ceil
 
-
 class Server:
     '''
     A server class for ftp

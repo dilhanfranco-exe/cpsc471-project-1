@@ -4,9 +4,7 @@ import os
 import struct
 from math import ceil
 
-
 raw_input = input
-
 
 class Client():
     '''
