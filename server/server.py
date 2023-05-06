@@ -174,7 +174,6 @@ class Server:
         d_sock.listen(1)
 
         # Accept connection
-        print('awaiting connection')
         conn, addr = d_sock.accept()
         print("\nConnected to by address: {}".format(addr))
 
@@ -277,7 +276,7 @@ class Server:
         '''
 
         # Get the size of the message
-        size = int.from_bytes(socket.recv(4))
+        size = int.from_bytes(socket.recv(4), byteorder='big')
 
         data = b''
         for _ in range(ceil(size / buffer_size)):
@@ -309,7 +308,7 @@ class Server:
 
         # Windows system
         if os.name == 'posix':
-            print('Press any key to exit . . .')
+            print('Press Enter to exit . . .')
             getpass.getpass(prompt='', stream=None)
             sys.exit()
         elif os.name == 'nt':
