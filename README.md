@@ -18,7 +18,17 @@ connect to the server and support uploading and downloading of files to/from ser
 ## Programming Language
 Python 3.11.0
 
-## How to Execute
+# How to Execute
+Our client and server files are in two different folders with their respective names. Therefore, open two different terminals and cd into the server and client directories.
+
+## How to start the server
+In the server, we just run the file as follows:
+```
+python3 server.py
 ```
 
+## How to start the client
+In the client, we specify the local host server and the port we are connecting to:
+```
+python3 cli.py 127.0.0.1 21
 ```
