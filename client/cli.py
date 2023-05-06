@@ -468,7 +468,7 @@ class Client():
         '''
 
         # Get the size of the message
-        size = int.from_bytes(socket.recv(4))
+        size = int.from_bytes(socket.recv(4), byteorder='big')
 
         data = b''
         for _ in range(ceil(size / buffer_size)):
@@ -485,7 +485,7 @@ class Client():
 
         # Windows system
         if os.name == 'posix':
-            print('Press any key to exit . . .')
+            print('Press Enter to exit . . .')
             # Wait for user input
             getpass.getpass(prompt='', stream=None)
 
