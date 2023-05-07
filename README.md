@@ -61,6 +61,7 @@ ftp>help
 ```
 
 ## Protocol
+![c025d795ddbfe3ca9fd6a1dbd7cd22b1](https://user-images.githubusercontent.com/54593489/236655005-93aa575f-b06c-488d-8494-61dca9f944d1.png)
+![Process Map](https://user-images.githubusercontent.com/54593489/236655010-12ff0f2e-babc-4464-aa03-3feb240e383e.png)
 
-![Process Map](https://user-images.githubusercontent.com/54593489/236600347-1dc0d3d1-d4ff-4193-93ce-8ec8fb2c378e.jpeg)
 ```
